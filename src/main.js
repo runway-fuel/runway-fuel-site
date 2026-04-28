@@ -71,6 +71,82 @@ const executionPrinciples = [
   'Scalable operating discipline designed for complex environments.',
 ];
 
+const commercialOffers = [
+  {
+    code: 'rf_diagnostic',
+    label: 'Runway Fuel Diagnostic',
+    priceDisplay: '€295',
+    deliveryTarget: 'Target delivery: 3 business days',
+    description:
+      'Focused diagnostic engagement for teams that need clarity on the operating problem, constraint pattern, and immediate execution priorities.',
+  },
+  {
+    code: 'rf_blueprint',
+    label: 'Runway Fuel Execution Blueprint',
+    priceDisplay: '€1,950',
+    deliveryTarget: 'Target delivery: 5 business days',
+    description:
+      'Structured blueprint engagement for a deeper operating assessment, execution design, and recommended implementation path.',
+  },
+  {
+    code: 'rf_deposit',
+    label: 'Runway Fuel Implementation Deposit',
+    priceDisplay: '€1,000',
+    deliveryTarget: 'Target delivery: 2 business days to scope activation',
+    description:
+      'Commercial deposit for heavier implementation work where the next step is active execution rather than advisory diagnosis alone.',
+  },
+];
+
+const DEFAULT_CHECKOUT_BUTTON_LABEL = 'Continue to secure checkout';
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function formatMoney(currency, amountCents) {
+  if (!Number.isFinite(amountCents)) {
+    return 'Amount pending';
+  }
+
+  const normalizedCurrency = String(currency || 'EUR').toUpperCase();
+
+  try {
+    return new Intl.NumberFormat('en-DE', {
+      style: 'currency',
+      currency: normalizedCurrency,
+    }).format(amountCents / 100);
+  } catch {
+    return `${(amountCents / 100).toFixed(2)} ${normalizedCurrency}`;
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return 'Pending';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Pending';
+  }
+
+  return new Intl.DateTimeFormat('en-DE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 const app = document.querySelector('#app');
 const year = new Date().getFullYear();
 
@@ -320,37 +396,83 @@ app.innerHTML = `
         <div class="container contact-layout">
           <div class="contact-copy reveal">
             <p class="eyebrow">Engagement path</p>
-            <h2>Use the public surface now. Connect the live contact endpoint when you are ready.</h2>
+            <h2>Select the right starting point and move directly into secure checkout.</h2>
             <p>
-              This first public release is designed to present Runway Fuel with clarity and credibility while keeping the
-              contact layer flexible. The intake form below is ready to be connected to your preferred email, CRM,
-              or backend workflow during the next implementation step.
+              The commercial path is now live. Choose the appropriate Runway Fuel engagement below, enter the buyer
+              identity fields once, and continue into secure Stripe Checkout. Structured project intake follows payment,
+              which keeps pricing authoritative on the server and the delivery flow operationally consistent.
             </p>
+            <div class="offer-catalog">
+              ${commercialOffers
+                .map(
+                  (offer) => `
+                    <article class="offer-summary">
+                      <div class="offer-summary-header">
+                        <h3>${offer.label}</h3>
+                        <strong>${offer.priceDisplay}</strong>
+                      </div>
+                      <p>${offer.description}</p>
+                      <p class="offer-summary-meta">${offer.deliveryTarget}</p>
+                    </article>
+                  `,
+                )
+                .join('')}
+            </div>
             <div class="contact-links">
-              <a class="button button-primary" href="https://github.com/runway-fuel" target="_blank" rel="noreferrer">Visit the public organization</a>
               <a class="button button-secondary" href="#top">Return to top</a>
             </div>
           </div>
-          <form class="contact-form reveal" id="contact-form">
-            <label>
-              <span>Name</span>
-              <input type="text" name="name" placeholder="Your name" required />
-            </label>
-            <label>
-              <span>Organization</span>
-              <input type="text" name="organization" placeholder="Your organization" required />
-            </label>
-            <label>
-              <span>Email</span>
-              <input type="email" name="email" placeholder="you@example.com" required />
-            </label>
-            <label>
-              <span>Context</span>
-              <textarea name="context" rows="5" placeholder="Describe the operational environment, constraint, or coordination problem." required></textarea>
-            </label>
-            <button class="button button-primary" type="submit">Prepare intake message</button>
-            <p class="form-note" id="form-note">Frontend intake surface only. Connect this form to your preferred submission endpoint during deployment hardening.</p>
-          </form>
+          <div class="contact-stack">
+            <div class="checkout-status" id="checkout-status" hidden></div>
+            <form class="contact-form reveal" id="contact-form">
+              <fieldset class="offer-fieldset">
+                <legend>Choose the engagement path</legend>
+                <div class="offer-grid">
+                  ${commercialOffers
+                    .map(
+                      (offer, index) => `
+                        <label class="offer-option">
+                          <input
+                            class="offer-input"
+                            type="radio"
+                            name="offerCode"
+                            value="${offer.code}"
+                            ${index === 0 ? 'checked' : ''}
+                            required
+                          />
+                          <div class="offer-card">
+                            <div class="offer-card-top">
+                              <p class="offer-card-label">${offer.label}</p>
+                              <strong>${offer.priceDisplay}</strong>
+                            </div>
+                            <p>${offer.description}</p>
+                            <small>${offer.deliveryTarget}</small>
+                          </div>
+                        </label>
+                      `,
+                    )
+                    .join('')}
+                </div>
+              </fieldset>
+              <label>
+                <span>Name</span>
+                <input type="text" name="name" placeholder="Buyer name" autocomplete="name" required />
+              </label>
+              <label>
+                <span>Organization</span>
+                <input type="text" name="organization" placeholder="Buyer organization" autocomplete="organization" required />
+              </label>
+              <label>
+                <span>Email</span>
+                <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+              </label>
+              <button class="button button-primary" type="submit">${DEFAULT_CHECKOUT_BUTTON_LABEL}</button>
+              <p class="form-note" id="form-note">
+                Pricing shown here is informational only. Secure checkout, order creation, and fulfillment state are
+                controlled server-side for consistency.
+              </p>
+            </form>
+          </div>
         </div>
       </section>
     </main>
@@ -379,6 +501,11 @@ const tabs = [...document.querySelectorAll('.stakeholder-tab')];
 const detail = document.querySelector('#stakeholder-detail');
 const contactForm = document.querySelector('#contact-form');
 const formNote = document.querySelector('#form-note');
+const checkoutStatus = document.querySelector('#checkout-status');
+const submitButton = contactForm?.querySelector('button[type="submit"]');
+const checkoutQuery = new URLSearchParams(window.location.search);
+const checkoutState = checkoutQuery.get('checkout');
+const checkoutSessionId = checkoutQuery.get('session_id');
 const sections = [...document.querySelectorAll('main section[id]')];
 const revealTargets = document.querySelectorAll('.reveal');
 
@@ -449,19 +576,167 @@ const navObserver = new IntersectionObserver(
 
 sections.forEach((section) => navObserver.observe(section));
 
-contactForm?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const data = new FormData(contactForm);
-  const name = data.get('name');
-  const organization = data.get('organization');
-  const email = data.get('email');
-  const context = data.get('context');
-  const body = encodeURIComponent(
-    `Name: ${name}\nOrganization: ${organization}\nEmail: ${email}\n\nContext:\n${context}`,
+function setFormNote(message, tone = 'default') {
+  if (!formNote) {
+    return;
+  }
+
+  formNote.textContent = message;
+  formNote.classList.remove('is-success', 'is-error', 'is-info');
+
+  if (tone !== 'default') {
+    formNote.classList.add(`is-${tone}`);
+  }
+}
+
+function renderCheckoutStatus(markup, tone = 'info') {
+  if (!checkoutStatus) {
+    return;
+  }
+
+  checkoutStatus.hidden = false;
+  checkoutStatus.className = `checkout-status is-${tone}`;
+  checkoutStatus.innerHTML = markup;
+}
+
+async function fetchOrderWithRetry(sessionId, attempt = 0) {
+  const response = await fetch(`/api/get-order?session_id=${encodeURIComponent(sessionId)}`);
+  const payload = await response.json().catch(() => ({}));
+
+  if (response.ok) {
+    return payload;
+  }
+
+  if (response.status === 404 && payload?.error?.code === 'order_not_found' && attempt < 4) {
+    renderCheckoutStatus(
+      `
+        <p class="checkout-status-eyebrow">Payment received</p>
+        <h3>Finalizing your order record.</h3>
+        <p>Stripe has returned successfully. Runway Fuel is now waiting for the payment event to finish writing the production order record.</p>
+      `,
+      'pending',
+    );
+    await wait(1500);
+    return fetchOrderWithRetry(sessionId, attempt + 1);
+  }
+
+  throw new Error(payload?.error?.message || 'Order confirmation could not be loaded yet.');
+}
+
+async function hydrateCheckoutState() {
+  if (checkoutState === 'cancelled') {
+    renderCheckoutStatus(
+      `
+        <p class="checkout-status-eyebrow">Checkout cancelled</p>
+        <h3>No payment was captured.</h3>
+        <p>You can review the engagement paths below and restart secure checkout whenever you are ready.</p>
+      `,
+      'info',
+    );
+    return;
+  }
+
+  if (checkoutState !== 'success' || !checkoutSessionId) {
+    return;
+  }
+
+  renderCheckoutStatus(
+    `
+      <p class="checkout-status-eyebrow">Payment received</p>
+      <h3>Confirming your order.</h3>
+      <p>Runway Fuel is validating the Stripe session and loading the associated order record now.</p>
+    `,
+    'pending',
   );
 
-  formNote.textContent = 'Intake message prepared. Connect a real submission endpoint, or route this structure to your preferred email or CRM during the next implementation step.';
-  formNote.classList.add('is-success');
+  try {
+    const payload = await fetchOrderWithRetry(checkoutSessionId);
+    const { order } = payload;
+    const buyerReference = escapeHtml(order.organization || order.buyerName || order.buyerEmailMasked || 'the buyer');
 
-  window.location.href = `mailto:?subject=Runway Fuel operational inquiry&body=${body}`;
+    renderCheckoutStatus(
+      `
+        <p class="checkout-status-eyebrow">Order confirmed</p>
+        <h3>${escapeHtml(order.offerLabel)} is now active.</h3>
+        <p>Order <strong>${escapeHtml(order.orderNumber)}</strong> has been recorded for ${buyerReference}.</p>
+        <div class="checkout-metadata">
+          <div>
+            <strong>Total</strong>
+            <span>${escapeHtml(formatMoney(order.currency, order.amountTotalCents))}</span>
+          </div>
+          <div>
+            <strong>Payment status</strong>
+            <span>${escapeHtml(order.paymentStatus)}</span>
+          </div>
+          <div>
+            <strong>Fulfillment status</strong>
+            <span>${escapeHtml(order.fulfillmentStatus)}</span>
+          </div>
+          <div>
+            <strong>Target due date</strong>
+            <span>${escapeHtml(formatDateTime(order.fulfillmentDueAt))}</span>
+          </div>
+        </div>
+      `,
+      'success',
+    );
+
+    setFormNote(
+      `Payment confirmed. Reference ${order.orderNumber} for the next structured intake step.`,
+      'success',
+    );
+  } catch (error) {
+    renderCheckoutStatus(
+      `
+        <p class="checkout-status-eyebrow">Payment received</p>
+        <h3>Your payment succeeded, and the order record is still finalizing.</h3>
+        <p>${escapeHtml(error.message)}</p>
+      `,
+      'pending',
+    );
+  }
+}
+
+contactForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  if (!submitButton) {
+    return;
+  }
+
+  const data = new FormData(contactForm);
+  const payload = {
+    offerCode: String(data.get('offerCode') ?? '').trim(),
+    name: String(data.get('name') ?? '').trim(),
+    organization: String(data.get('organization') ?? '').trim(),
+    email: String(data.get('email') ?? '').trim(),
+  };
+
+  submitButton.disabled = true;
+  submitButton.textContent = 'Preparing secure checkout...';
+  setFormNote('Creating your secure checkout session now.', 'info');
+
+  try {
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.checkoutUrl) {
+      throw new Error(result?.error?.message || 'Checkout session could not be created.');
+    }
+
+    setFormNote('Checkout session created. Redirecting to Stripe now.', 'success');
+    window.location.assign(result.checkoutUrl);
+  } catch (error) {
+    submitButton.disabled = false;
+    submitButton.textContent = DEFAULT_CHECKOUT_BUTTON_LABEL;
+    setFormNote(error.message, 'error');
+  }
 });
+
+hydrateCheckoutState();
