@@ -42,6 +42,20 @@ function isUniqueViolation(error) {
   return error?.code === '23505';
 }
 
+function normalizeZeroOrOneResult(data, error, { errorCode, multipleRowsCode }) {
+  if (error) {
+    throw createHttpError(500, errorCode, error.message);
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+
+  if (rows.length > 1) {
+    throw createHttpError(500, multipleRowsCode, 'Expected at most one row but received multiple rows.');
+  }
+
+  return rows[0] ?? null;
+}
+
 export function getSupabaseAdmin() {
   if (!supabaseAdmin) {
     const env = getEnv();
@@ -91,13 +105,12 @@ export async function findOrderByStripeSessionId(stripeSessionId) {
     .from('rf_orders')
     .select(ORDER_SELECT)
     .eq('stripe_session_id', stripeSessionId)
-    .maybeSingle();
+    .limit(2);
 
-  if (error) {
-    throw createHttpError(500, 'supabase_order_lookup_failed', error.message);
-  }
-
-  return data;
+  return normalizeZeroOrOneResult(data, error, {
+    errorCode: 'supabase_order_lookup_failed',
+    multipleRowsCode: 'supabase_order_lookup_multiple',
+  });
 }
 
 export async function findOrderByReference({ orderNumber = '', sessionId = '' }) {
@@ -108,13 +121,12 @@ export async function findOrderByReference({ orderNumber = '', sessionId = '' })
       .from('rf_orders')
       .select(ORDER_SELECT)
       .eq('order_number', orderNumber)
-      .maybeSingle();
+      .limit(2);
 
-    if (error) {
-      throw createHttpError(500, 'supabase_order_lookup_failed', error.message);
-    }
-
-    return data;
+    return normalizeZeroOrOneResult(data, error, {
+      errorCode: 'supabase_order_lookup_failed',
+      multipleRowsCode: 'supabase_order_lookup_multiple',
+    });
   }
 
   if (sessionId) {
@@ -122,13 +134,12 @@ export async function findOrderByReference({ orderNumber = '', sessionId = '' })
       .from('rf_orders')
       .select(ORDER_SELECT)
       .eq('stripe_session_id', sessionId)
-      .maybeSingle();
+      .limit(2);
 
-    if (error) {
-      throw createHttpError(500, 'supabase_order_lookup_failed', error.message);
-    }
-
-    return data;
+    return normalizeZeroOrOneResult(data, error, {
+      errorCode: 'supabase_order_lookup_failed',
+      multipleRowsCode: 'supabase_order_lookup_multiple',
+    });
   }
 
   throw createHttpError(400, 'missing_order_reference', 'Provide order_number or session_id.');
@@ -140,13 +151,12 @@ export async function getOrderIntake(orderId) {
     .from('rf_order_intakes')
     .select('*')
     .eq('order_id', orderId)
-    .maybeSingle();
+    .limit(2);
 
-  if (error) {
-    throw createHttpError(500, 'supabase_intake_lookup_failed', error.message);
-  }
-
-  return data;
+  return normalizeZeroOrOneResult(data, error, {
+    errorCode: 'supabase_intake_lookup_failed',
+    multipleRowsCode: 'supabase_intake_lookup_multiple',
+  });
 }
 
 export async function createPaidOrderFromCheckoutSession({ session, customer, offer, paidAt }) {
