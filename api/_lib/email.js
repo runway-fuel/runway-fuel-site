@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 
 import { getEnv } from './env.js';
 import { createHttpError } from './http.js';
+import { EMAIL_LINK_TTL_SECONDS, mintOrderAccessToken } from './order-access.js';
 
 let resendClient;
 
@@ -26,6 +27,18 @@ export async function sendBuyerOrderConfirmationEmail(order) {
   const resend = getResendClient();
   const amount = formatCurrency(order.amount_total_cents, order.currency);
 
+  // A longer-lived, signed link that lets the buyer return to view their order
+  // without re-entering their email. Bound to this order's correlation key.
+  const orderToken = mintOrderAccessToken({
+    correlationKey: order.correlation_key,
+    email: order.buyer_email,
+    ttlSeconds: EMAIL_LINK_TTL_SECONDS,
+  });
+  const orderUrl =
+    `${env.APP_BASE_URL}/?checkout=success` +
+    `&session_id=${encodeURIComponent(order.stripe_session_id)}` +
+    `&order_token=${encodeURIComponent(orderToken)}`;
+
   const { data, error } = await resend.emails.send({
     from: env.RUNWAY_FUEL_FROM_EMAIL,
     to: order.buyer_email,
@@ -39,6 +52,8 @@ export async function sendBuyerOrderConfirmationEmail(order) {
       `Amount: ${amount}`,
       `Fulfillment status: ${order.fulfillment_status}`,
       `Operational deadline: ${order.fulfillment_due_at}`,
+      '',
+      `View your order: ${orderUrl}`,
       '',
       'Reply to this email if you need to add context before intake submission.',
       '',
@@ -54,6 +69,7 @@ export async function sendBuyerOrderConfirmationEmail(order) {
           <tr><td style="padding: 4px 12px 4px 0;"><strong>Fulfillment status</strong></td><td>${order.fulfillment_status}</td></tr>
           <tr><td style="padding: 4px 12px 4px 0;"><strong>Operational deadline</strong></td><td>${order.fulfillment_due_at}</td></tr>
         </table>
+        <p><a href="${orderUrl}" style="display: inline-block; padding: 10px 18px; background: #111827; color: #ffffff; text-decoration: none; border-radius: 6px;">View your order</a></p>
         <p>Reply to this email if you need to add context before intake submission.</p>
         <p>Runway Fuel</p>
       </div>

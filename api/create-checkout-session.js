@@ -15,6 +15,7 @@ import {
   generateCorrelationKey,
   resolveOffer,
 } from './_lib/offers.js';
+import { mintOrderAccessToken } from './_lib/order-access.js';
 import { createOfferCheckoutSession } from './_lib/stripe.js';
 
 export default async function handler(req, res) {
@@ -49,10 +50,12 @@ export default async function handler(req, res) {
 
     const offer = resolveOffer(offerCode);
     const correlationKey = generateCorrelationKey();
+    const orderToken = mintOrderAccessToken({ correlationKey, email: buyerEmail });
 
     const session = await createOfferCheckoutSession({
       offer,
       correlationKey,
+      orderToken,
       buyer: {
         email: buyerEmail,
         name: buyerName,

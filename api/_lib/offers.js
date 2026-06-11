@@ -119,9 +119,12 @@ export function calculateFulfillmentDueAt(offerCode, paidAt = new Date()) {
   return addBusinessDays(paidAt, offer.slaBusinessDays).toISOString();
 }
 
-export function buildSuccessUrl() {
+export function buildSuccessUrl({ orderToken } = {}) {
   const env = getEnv();
-  return `${env.APP_BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+  // The literal {CHECKOUT_SESSION_ID} placeholder must remain unencoded so
+  // Stripe can substitute it; only the appended token is URL-encoded.
+  const base = `${env.APP_BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+  return orderToken ? `${base}&order_token=${encodeURIComponent(orderToken)}` : base;
 }
 
 export function buildCancelUrl() {
