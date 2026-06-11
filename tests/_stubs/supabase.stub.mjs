@@ -31,3 +31,7 @@ export async function findOrderByReference() {
 export async function getOrderIntake() {
   return null;
 }
+
+export async function getOrderDelivery() {
+  return null;
+}

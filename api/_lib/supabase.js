@@ -337,6 +337,73 @@ export async function markOrderIntakeReceived(orderId) {
   return data;
 }
 
+export async function upsertOrderDelivery({
+  orderId,
+  deliveredBy,
+  summary,
+  message,
+  links,
+  rawPayload,
+}) {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('rf_order_deliveries')
+    .upsert(
+      {
+        order_id: orderId,
+        delivered_by: deliveredBy || null,
+        summary,
+        message: message || null,
+        links,
+        delivery_payload: rawPayload ?? {},
+        delivered_at: new Date().toISOString(),
+      },
+      { onConflict: 'order_id' },
+    )
+    .select('*')
+    .single();
+
+  if (error) {
+    throw createHttpError(500, 'supabase_delivery_upsert_failed', error.message);
+  }
+
+  return data;
+}
+
+export async function getOrderDelivery(orderId) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('rf_order_deliveries')
+    .select('*')
+    .eq('order_id', orderId)
+    .limit(2);
+
+  return normalizeZeroOrOneResult(data, error, {
+    errorCode: 'supabase_delivery_lookup_failed',
+    multipleRowsCode: 'supabase_delivery_lookup_multiple',
+  });
+}
+
+export async function markOrderDelivered(orderId, { complete = false } = {}) {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('rf_orders')
+    .update({
+      fulfillment_status: complete ? 'completed' : 'delivery_sent',
+    })
+    .eq('id', orderId)
+    .select(ORDER_SELECT)
+    .single();
+
+  if (error) {
+    throw createHttpError(500, 'supabase_order_update_failed', error.message);
+  }
+
+  return data;
+}
+
 export async function getRecentOrders(limit = 10) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
