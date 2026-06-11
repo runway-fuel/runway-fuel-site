@@ -10,7 +10,7 @@ import {
 } from './_lib/http.js';
 import { logError, logInfo } from './_lib/logging.js';
 import { verifyOrderAccessToken } from './_lib/order-access.js';
-import { findOrderByReference, getOrderIntake } from './_lib/supabase.js';
+import { findOrderByReference, getOrderDelivery, getOrderIntake } from './_lib/supabase.js';
 
 function maskEmail(email) {
   const [localPart = '', domain = ''] = String(email || '').split('@');
@@ -97,11 +97,15 @@ export default async function handler(req, res) {
       return sendJson(res, 200, {
         order: safeOrder,
         intake: null,
+        delivery: null,
         requestId,
       });
     }
 
-    const intake = await getOrderIntake(order.id);
+    const [intake, delivery] = await Promise.all([
+      getOrderIntake(order.id),
+      getOrderDelivery(order.id),
+    ]);
 
     logInfo('Order retrieved.', {
       requestId,
@@ -138,6 +142,14 @@ export default async function handler(req, res) {
             goals: intake.goals,
             priorities: intake.priorities,
             deliveryNotes: intake.delivery_notes,
+          }
+        : null,
+      delivery: delivery
+        ? {
+            summary: delivery.summary,
+            message: delivery.message,
+            links: delivery.links,
+            deliveredAt: delivery.delivered_at,
           }
         : null,
       requestId,

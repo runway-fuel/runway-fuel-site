@@ -43,6 +43,8 @@ Run the SQL migrations in the exact sequence below.
 | --- | --- | --- |
 | 1 | `supabase/001_runway_fuel_core.sql` | Creates tables, constraints, triggers, and indexes |
 | 2 | `supabase/002_runway_fuel_policies.sql` | Enables row-level security and blocks direct client access |
+| 3 | `supabase/003_runway_fuel_service_role_grants.sql` | Grants the service role access to the schema |
+| 4 | `supabase/004_runway_fuel_deliveries.sql` | Adds the operator deliverables table for the delivery loop |
 
 These migrations are written for execution in the Supabase SQL editor or any equivalent migration runner. The backend assumes the schema already exists before the first real webhook arrives.
 

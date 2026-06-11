@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/c1_order_access.test.mjs"
+    "test": "node tests/c1_order_access.test.mjs && node tests/c2_delivery_loop.test.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.9"

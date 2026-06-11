@@ -22,6 +22,8 @@ The commercial model is intentionally narrow. Runway Fuel sells **one-time offer
 | `api/submit-intake.js` | Structured post-purchase intake submission |
 | `api/get-order.js` | Safe order lookup for success and fulfillment flows |
 | `api/get-usage.js` | Admin-only reporting surface |
+| `api/deliver-order.js` | Admin-only: issue a deliverable, advance fulfillment, email the buyer |
+| `scripts/deliver.mjs` | Operator CLI that calls `/api/deliver-order` from the terminal |
 | `supabase/001_runway_fuel_core.sql` | Core schema, constraints, triggers, and indexes |
 | `supabase/002_runway_fuel_policies.sql` | Row-level security and direct-access restrictions |
 
@@ -76,6 +78,7 @@ The persistence layer is intentionally boring. Buyers are stored in `rf_customer
 | `/api/submit-intake` | `POST` | Buyer flow | Stores structured intake on an existing paid order |
 | `/api/get-order` | `GET` | Buyer flow | Returns a single order summary without exposing unrelated records |
 | `/api/get-usage` | `GET` | Admin only | Returns revenue and status summaries behind Bearer token auth |
+| `/api/deliver-order` | `POST` | Admin only | Records a deliverable, advances fulfillment to `delivery_sent`/`completed`, and emails the buyer |
 
 ## Order lifecycle
 

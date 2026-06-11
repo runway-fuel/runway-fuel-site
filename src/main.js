@@ -628,6 +628,145 @@ async function fetchOrderWithRetry(sessionId, attempt = 0) {
   throw new Error(payload?.error?.message || 'Order confirmation could not be loaded yet.');
 }
 
+function getEngagementStageEl() {
+  let el = document.querySelector('#engagement-stage');
+  if (!el && checkoutStatus) {
+    el = document.createElement('div');
+    el.id = 'engagement-stage';
+    el.className = 'engagement-stage';
+    checkoutStatus.insertAdjacentElement('afterend', el);
+  }
+  return el;
+}
+
+function renderDeliveryStage(stageEl, delivery) {
+  const links = Array.isArray(delivery.links) ? delivery.links : [];
+  const linksHtml = links.length
+    ? `<ul class="delivery-links">${links
+        .map(
+          (l) =>
+            `<li><a href="${escapeHtml(l)}" target="_blank" rel="noreferrer">${escapeHtml(l)}</a></li>`,
+        )
+        .join('')}</ul>`
+    : '';
+  stageEl.innerHTML = `
+    <div class="engagement-card">
+      <p class="checkout-status-eyebrow">Deliverable ready</p>
+      <h3>${escapeHtml(delivery.summary || 'Your deliverable is ready.')}</h3>
+      ${delivery.message ? `<p>${escapeHtml(delivery.message)}</p>` : ''}
+      ${linksHtml}
+    </div>
+  `;
+}
+
+function renderIntakeReceivedStage(stageEl, order) {
+  stageEl.innerHTML = `
+    <div class="engagement-card">
+      <p class="checkout-status-eyebrow">Brief received</p>
+      <h3>We have your project brief.</h3>
+      <p>Your engagement is in active handling. Target delivery: <strong>${escapeHtml(
+        formatDateTime(order.fulfillmentDueAt),
+      )}</strong>. We will email you the moment your deliverable is ready.</p>
+    </div>
+  `;
+}
+
+function renderIntakeFormStage(stageEl, order) {
+  stageEl.innerHTML = `
+    <div class="engagement-card">
+      <p class="checkout-status-eyebrow">Next step</p>
+      <h3>Tell us about your engagement.</h3>
+      <p>Share the context we need to deliver. The more precise you are, the sharper the result.</p>
+      <form class="contact-form intake-form" id="intake-form" novalidate>
+        <label><span>Project background</span><textarea name="projectBackground" rows="3" placeholder="What are you building, and where does it stand?" required></textarea></label>
+        <label><span>Goals</span><textarea name="goals" rows="3" placeholder="What does a great outcome look like?" required></textarea></label>
+        <label><span>Current stack / systems</span><textarea name="currentStack" rows="2" placeholder="Tools, platforms, and systems in play"></textarea></label>
+        <label><span>Constraints</span><textarea name="constraints" rows="2" placeholder="Deadlines, budget, technical or org constraints"></textarea></label>
+        <label><span>Priorities</span><textarea name="priorities" rows="2" placeholder="What matters most, in order"></textarea></label>
+        <label><span>Links</span><textarea name="links" rows="2" placeholder="One per line: docs, repos, designs"></textarea></label>
+        <label><span>Delivery notes</span><textarea name="deliveryNotes" rows="2" placeholder="Anything we should know about how you want this delivered"></textarea></label>
+        <button class="button button-primary" type="submit">Submit project intake</button>
+        <p class="form-note" id="intake-note"></p>
+      </form>
+    </div>
+  `;
+
+  const intakeForm = stageEl.querySelector('#intake-form');
+  const intakeNote = stageEl.querySelector('#intake-note');
+  const intakeButton = intakeForm?.querySelector('button[type="submit"]');
+
+  intakeForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!intakeButton) return;
+
+    const data = new FormData(intakeForm);
+    const projectBackground = String(data.get('projectBackground') ?? '').trim();
+    const goals = String(data.get('goals') ?? '').trim();
+
+    if (!projectBackground || !goals) {
+      if (intakeNote) {
+        intakeNote.textContent = 'Project background and goals are required.';
+        intakeNote.dataset.tone = 'error';
+      }
+      return;
+    }
+
+    intakeButton.disabled = true;
+    intakeButton.textContent = 'Submitting...';
+    if (intakeNote) {
+      intakeNote.textContent = 'Submitting your project intake...';
+      intakeNote.dataset.tone = 'info';
+    }
+
+    try {
+      const response = await fetch('/api/submit-intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: checkoutSessionId,
+          orderToken: checkoutOrderToken,
+          projectBackground,
+          goals,
+          currentStack: String(data.get('currentStack') ?? '').trim(),
+          constraints: String(data.get('constraints') ?? '').trim(),
+          priorities: String(data.get('priorities') ?? '').trim(),
+          deliveryNotes: String(data.get('deliveryNotes') ?? '').trim(),
+          links: String(data.get('links') ?? '').trim(),
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.error?.message || 'Intake could not be submitted.');
+      }
+
+      renderIntakeReceivedStage(stageEl, {
+        fulfillmentDueAt: result.order?.fulfillmentDueAt ?? order.fulfillmentDueAt,
+      });
+    } catch (error) {
+      intakeButton.disabled = false;
+      intakeButton.textContent = 'Submit project intake';
+      if (intakeNote) {
+        intakeNote.textContent = error.message;
+        intakeNote.dataset.tone = 'error';
+      }
+    }
+  });
+}
+
+function renderEngagementStage(order, intake, delivery) {
+  const stageEl = getEngagementStageEl();
+  if (!stageEl) return;
+
+  if (delivery) {
+    renderDeliveryStage(stageEl, delivery);
+  } else if (order.intakeSubmittedAt || intake) {
+    renderIntakeReceivedStage(stageEl, order);
+  } else {
+    renderIntakeFormStage(stageEl, order);
+  }
+}
+
 async function hydrateCheckoutState() {
   if (checkoutState === 'cancelled') {
     renderCheckoutStatus(
@@ -706,9 +845,11 @@ async function hydrateCheckoutState() {
     );
 
     setFormNote(
-      `Payment confirmed. Reference ${order.orderNumber} for the next structured intake step.`,
+      `Payment confirmed. Order ${order.orderNumber}.`,
       'success',
     );
+
+    renderEngagementStage(order, payload.intake, payload.delivery);
   } catch (error) {
     renderCheckoutStatus(
       `

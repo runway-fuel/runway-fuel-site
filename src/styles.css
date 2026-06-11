@@ -1029,3 +1029,62 @@ p {
     padding: 0.85rem;
   }
 }
+
+/* C2 — post-payment engagement stage (intake form + deliverable view) */
+.engagement-stage {
+  margin-top: 18px;
+}
+
+.engagement-card {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-soft);
+}
+
+.engagement-card h3 {
+  margin: 6px 0 10px;
+}
+
+.intake-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.intake-form textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.intake-form textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.delivery-links {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.delivery-links a {
+  color: var(--accent);
+  word-break: break-word;
+}
+
+.form-note[data-tone='error'] {
+  color: #b42318;
+}
+
+.form-note[data-tone='success'] {
+  color: #1d7a4d;
+}
