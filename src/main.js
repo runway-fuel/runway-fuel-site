@@ -506,6 +506,7 @@ const submitButton = contactForm?.querySelector('button[type="submit"]');
 const checkoutQuery = new URLSearchParams(window.location.search);
 const checkoutState = checkoutQuery.get('checkout');
 const checkoutSessionId = checkoutQuery.get('session_id');
+const checkoutOrderToken = checkoutQuery.get('order_token');
 const sections = [...document.querySelectorAll('main section[id]')];
 const revealTargets = document.querySelectorAll('.reveal');
 
@@ -600,7 +601,11 @@ function renderCheckoutStatus(markup, tone = 'info') {
 }
 
 async function fetchOrderWithRetry(sessionId, attempt = 0) {
-  const response = await fetch(`/api/get-order?session_id=${encodeURIComponent(sessionId)}`);
+  const params = new URLSearchParams({ session_id: sessionId });
+  if (checkoutOrderToken) {
+    params.set('order_token', checkoutOrderToken);
+  }
+  const response = await fetch(`/api/get-order?${params.toString()}`);
   const payload = await response.json().catch(() => ({}));
 
   if (response.ok) {
@@ -652,6 +657,25 @@ async function hydrateCheckoutState() {
   try {
     const payload = await fetchOrderWithRetry(checkoutSessionId);
     const { order } = payload;
+
+    if (!order?.verified) {
+      // The order exists and is paid, but this view could not be verified
+      // (missing/expired access token). We deliberately do not render any
+      // buyer-identifying details here. The confirmation email contains a
+      // signed link that opens the full order view.
+      renderCheckoutStatus(
+        `
+          <p class="checkout-status-eyebrow">Payment received</p>
+          <h3>Your payment is confirmed.</h3>
+          <p>Order status: <strong>${escapeHtml(order?.fulfillmentStatus || 'paid')}</strong>.</p>
+          <p>We have emailed your receipt with a secure link to view the full order details and continue.</p>
+        `,
+        'success',
+      );
+      setFormNote('Payment confirmed. Check your email for a secure link to your order.', 'success');
+      return;
+    }
+
     const buyerReference = escapeHtml(order.organization || order.buyerName || order.buyerEmailMasked || 'the buyer');
 
     renderCheckoutStatus(

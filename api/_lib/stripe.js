@@ -21,12 +21,12 @@ export function getStripeClient() {
   return stripeClient;
 }
 
-export async function createOfferCheckoutSession({ offer, buyer, correlationKey }) {
+export async function createOfferCheckoutSession({ offer, buyer, correlationKey, orderToken }) {
   const stripe = getStripeClient();
 
   return stripe.checkout.sessions.create({
     mode: 'payment',
-    success_url: buildSuccessUrl(),
+    success_url: buildSuccessUrl({ orderToken }),
     cancel_url: buildCancelUrl(),
     customer_creation: 'always',
     customer_email: buyer.email,

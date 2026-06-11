@@ -72,6 +72,7 @@ required = [
     'RUNWAY_FUEL_FROM_EMAIL',
     'RUNWAY_FUEL_NOTIFICATION_EMAIL',
     'ADMIN_API_TOKEN',
+    'ORDER_ACCESS_TOKEN_SECRET',
 ]
 sensitive_allowed_missing = {'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'}
 missing = [k for k in required if not env.get(k) and k not in sensitive_allowed_missing]

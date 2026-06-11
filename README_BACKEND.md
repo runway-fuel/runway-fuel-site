@@ -54,6 +54,7 @@ Every route imports the same environment helper and will fail clearly if any req
 | `RUNWAY_FUEL_FROM_EMAIL` | Verified sender used for transactional email |
 | `RUNWAY_FUEL_NOTIFICATION_EMAIL` | Internal notification recipient |
 | `ADMIN_API_TOKEN` | Bearer token required by `/api/get-usage` |
+| `ORDER_ACCESS_TOKEN_SECRET` | HMAC secret used to sign/verify buyer order-access tokens (`/api/get-order`). Long random value; rotate independently of other secrets. |
 
 ## Data model
 

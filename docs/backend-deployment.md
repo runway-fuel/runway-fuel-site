@@ -33,6 +33,7 @@ Populate the exact keys from `.env.example` in the Vercel project settings.
 | `RUNWAY_FUEL_FROM_EMAIL` | Verified sender, for example `Runway Fuel <ops@yourdomain.com>` |
 | `RUNWAY_FUEL_NOTIFICATION_EMAIL` | Internal operations inbox |
 | `ADMIN_API_TOKEN` | Long random secret used as a Bearer token for `/api/get-usage` |
+| `ORDER_ACCESS_TOKEN_SECRET` | Long random secret (HMAC key) used to sign and verify buyer order-access tokens for `/api/get-order` |
 
 ## Step 3: apply Supabase migrations in order
 
